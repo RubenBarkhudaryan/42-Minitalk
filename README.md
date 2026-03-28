@@ -1,80 +1,72 @@
-
----
-
-## 42-MiniTalk
-
 # 42 Minitalk
 
-`minitalk` is a small client-server messaging system that communicates via UNIX signals. You must implement:
+## Overview
+Minitalk is a small IPC project where a client sends text to a server using only Unix signals.
 
-- **server** – waits for incoming messages (bit-by-bit via `SIGUSR1`/`SIGUSR2`), reconstructs them, and prints to stdout.  
-- **client** – sends a string message to the server by encoding each character’s bits into signals.
+Each character is transmitted bit by bit with synchronization logic.
 
----
-
-## Table of Contents
-
-- [Features](#features)  
-- [Setup & Installation](#setup--installation)  
-  - [Compile the library](#compile-the-library)  
-- [Usage](#usage)  
-- [Bonus](#bonus)  
-- [Project Structure](#project-structure)  
-- [Author](#author)  
-
-
----
+This project is a practical introduction to low-level inter-process communication (IPC) where reliability must be built manually on top of signal primitives.
 
 ## Features
+- Signal-based communication:
+  - SIGUSR1
+  - SIGUSR2
+- Server PID based client targeting
+- Character reconstruction on server side
+- Acknowledgment mechanism for reliability
+- Bonus client/server with stronger delivery guarantees
+- Unicode-oriented testing utilities included
 
-- Bit-wise transmission using `kill()` and signal handlers.
-- Unicode characters handled.
-- Acknowledgement of each character to ensure reliable delivery.  
-- Clean API in `minitalk.h` for:
-  ```
-  void _signal_(int sig, void *handler, int options);
-  void _kill_(int server_pid, int sig);
-  ```
+## Core Concepts
 
-## Setup & Instalation
-```
-git clone https://github.com/RubBarkhudaryan/42-Minitalk.git
-cd 42-Minitalk
-make
-```
+### Signal-Based Protocol
+Because only signals are allowed, the sender encodes each character as bits and transmits them one by one. The receiver reconstructs bytes in the correct order.
 
-**This produces two executables:** ```server``` and ``` client ```
+### Delivery Reliability
+Without synchronization, fast signal bursts can be lost or misordered by implementation timing.
 
-## Usage
-**Start the server**
+To mitigate this, the project uses acknowledgment logic so the client sends the next bit/char only when the server confirms reception.
 
-```./server```
-It will print its PID. Leave it running.
+### Server Identity
+The client targets a specific process ID, which makes PID management part of normal usage and testing.
 
-**Send a message**
+## Build
+- make
 
-```./client <SERVER_PID> "Hello, 42!"```
-The server will rebuild the string and print Hello, 42! to its stdout.
+## Run
+Start server:
+- ./server
 
-## Bonus
-server_bonus.c / client_bonus.c
-Implements more robust acknowledgment logic to confirm receipt of each bit before sending the next.
+Send message:
+- ./client SERVER_PID "Hello from client"
+
+Bonus:
+- ./server_bonus
+- ./client_bonus SERVER_PID "Hello bonus"
+
+## Typical Flow
+1. Start server and read printed PID.
+2. Run client with PID and message.
+3. Server decodes bitstream and prints reconstructed text.
+4. Bonus mode improves synchronization robustness.
 
 ## Project Structure
+- server.c / client.c: mandatory
+- server_bonus.c / client_bonus.c: bonus
+- minitalk_utils.c and libft_functions.c: helpers
+- minitalk.h: shared declarations
+- testers: additional test helpers
 
-```
-42-Minitalk/
-├── testers            # Testers to ensure that the unicode characters are handled
-├── client.c           # Basic client
-├── client_bonus.c     # Bonus client with robust ACK
-├── server.c           # Basic server
-├── server_bonus.c     # Bonus server with enhanced logic
-├── minitalk_utils.c   # Internal bit-manipulation helpers
-├── libft_functions.c  # ft_putchar, ft_putstr, ft_atoi, …
-├── minitalk.h         # Shared prototypes & enums
-├── Makefile
-└── README.md
-```
+## Error Cases Considered
+- invalid PID
+- signal interruptions during transmission
+- partial state recovery between characters
+- graceful handling of malformed client calls
 
-**Author
-Rub Barkhudaryan**
+## Key Learnings
+- Low-level IPC with signals
+- Message framing and acknowledgment design
+- Async-safe coding and robust edge-case handling
+
+## Notes
+Minitalk is a strong bridge from simple process signaling to protocol design fundamentals.
